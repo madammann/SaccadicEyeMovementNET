@@ -1,0 +1,4 @@
+Classes:Person,Dog,Train,Cow,Car,Motorbike,Chair,Sofa,Bottle
+FromLatest:True
+Epoch=latest
+MaxEpoch=20

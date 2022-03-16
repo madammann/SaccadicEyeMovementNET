@@ -23,114 +23,103 @@ class FeatureExtractor(tf.keras.Model):
         x = self.avgpool(x)
         return x
 
-class ClassifierHead(tf.keras.Model):
-    def __init__(self,classes=10):
-        super(ClassifierHead, self).__init__()
-        self.dense = tf.keras.layers.Dense(20,activation='relu')
-        self.out = tf.keras.layers.Dense(classes,activation='softmax')
-
-    @tf.function
-    def call(self, x):
-        x = self.dense(x)
-        x = self.out(x)
-        return x
-
-class ActionHead(tf.keras.Model):
-    def __init__(self):
-        super(ActionHead, self).__init__()
-        self.dense = tf.keras.layers.Dense(20,activation='relu')
-        self.out = tf.keras.layers.Dense(4,activation='linear')
-
-    @tf.function
-    def call(self, x):
-        x = self.dense(x)
-        x = self.out(x)
-        return x
-
 class SaccadicNetEye(tf.keras.Model):
-    def __init__(self, destinct_id):
+    def __init__(self):
         super(SaccadicNetEye, self).__init__()
-        '''Model parts'''
+        '''Model structure'''
         self.feature_extractor = FeatureExtractor()
-        self.LSMT = tf.keras.layers.LSTM(20)
-        self.action_head = ActionHead()
-        '''Optimizer and loss parts'''
+        
+        self.LSMT = tf.keras.layers.LSTM(30)
+        
+        self.dense = tf.keras.layers.Dense(30,activation='relu')
+        
+        self.out_mu = tf.keras.layers.Dense(2,activation='linear')
+        self.out_sigma = tf.keras.layers.Dense(2,activation='softplus')
+        
+        '''Utility'''
+        self.name = 'SaccadicNetClassifier'
+        self.built = True
         self.optimizer = None
         self.loss = None
-        '''other'''
-        self.nameinfo = ['SaccadicNetClassifier','classifier',destinct_id]
         
     @tf.function
     def call(self, x):
         x = self.feature_extractor(x)
         x = self.LSTM(x)
-        x = self.action_head(x)
-        return x
+        x = self.dense(x)
+        a = self.out_mu(x)
+        b = self.out_sigma(x)
+        return tf.concat([a,b],axis=1)
     
-    def store_intermediate(self, path='./weights/'):
+    def store_intermediate(self, epoch, path='./weights/'):
         '''Stores the model weights after the training epoch'''
-        name = self.nameinfo[1]+self.nameinfo[2]+str(epoch)
+        name = self.name+str(epoch)
         self.save_weights('./weights/'+name+'.h5',save_format='HDF5')
 
     def load_intermediate(self, epoch, path='./weights/'):
         '''Loads the weights from a specific state'''
-        name = self.nameinfo[1]+self.nameinfo[2]+str(epoch)
+        name = self.name+str(epoch)
         self.load_weights('weights/'+name+'.h5')
         
-    def load_final(self, path='./weights/'):
+    def load_latest(self, path='./weights/'):
         '''Loads the weights of the final model.'''
         try:
             df = pd.read_csv('./weights/index.csv')
-            df.where('Part' == self.nameinfo[1]).dropna()
-            df.where('Id' == self.nameinfo[2]).dropna()
-            current_epoch = max(df['Epoch'])
-            name = self.nameinfo[1]+self.nameinfo[2]+str(current_epoch)
+            df.where('Model' == self.name).dropna()
+            current_epoch = max(list(df['Epoch']))
+            name = self.name+str(current_epoch)
             self.load_weights('weights/'+name+'.h5')
         except Exception as e:
             print(e)
             print('Could not load latest model from index.csv information.')
+            print('You can ignore this error if the model has never been trained.')
 
 class SaccadicNetClassifier(tf.keras.Model):
-    def __init__(self, destinct_id):
+    def __init__(self, classes=10):
         super(SaccadicNetClassifier, self).__init__()
-        '''Model parts'''
+        '''Model structure'''
         self.feature_extractor = FeatureExtractor()
-        self.LSMT = tf.keras.layers.LSTM(20)
-        self.classifier_head = ActionHead()
-        '''Optimizer and loss parts'''
+        
+        self.LSMT = tf.keras.layers.LSTM(30)
+        
+        self.dense = tf.keras.layers.Dense(30,activation='relu')
+        
+        self.out = tf.keras.layers.Dense(classes,activation='softmax')
+
+        '''Utility'''
+        self.name = 'SaccadicNetClassifier'
+        self.built = True
         self.optimizer = None
         self.loss = None
-        '''other'''
-        self.built = True
-        self.nameinfo = ['SaccadicNetClassifier','classifier',destinct_id]
     
     @tf.function
     def call(self, x):
         x = self.feature_extractor(x)
         x = self.LSTM(x)
-        x = self.ClassifierHead(x)
+        x = self.dense(x)
+        x = self.out(x)
         return x
     
-    def store_intermediate(self, path='./weights/'):
+    def store_intermediate(self, epoch, path='./weights/'):
         '''Stores the model weights after the training epoch'''
-        name = self.nameinfo[1]+self.nameinfo[2]+str(epoch)
+        name = self.name+str(epoch)
         self.save_weights('./weights/'+name+'.h5',save_format='HDF5')
 
     def load_intermediate(self, epoch, path='./weights/'):
         '''Loads the weights from a specific state'''
-        name = self.nameinfo[1]+self.nameinfo[2]+str(epoch)
+        name = self.name+str(epoch)
         self.load_weights('weights/'+name+'.h5')
         
-    def load_final(self, path='./weights/'):
+    def load_latest(self, path='./weights/'):
         '''Loads the weights of the final model.'''
         try:
             df = pd.read_csv('./weights/index.csv')
-            df.where('Part' == self.nameinfo[1]).dropna()
-            df.where('Id' == self.nameinfo[2]).dropna()
-            current_epoch = max(df['Epoch'])
-            name = self.nameinfo[1]+self.nameinfo[2]+str(current_epoch)
+            df.where('Model' == self.name).dropna()
+            current_epoch = max(list(df['Epoch']))
+            name = self.name+str(current_epoch)
             self.load_weights('weights/'+name+'.h5')
         except Exception as e:
             print(e)
             print('Could not load latest model from index.csv information.')
+            print('You can ignore this error if the model has never been trained.')
         
