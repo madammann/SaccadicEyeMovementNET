@@ -17,13 +17,14 @@ def get_setup():
         setup_file['FromLatest'] = bool(setup_file['FromLatest'])
         setup_file['Epoch'] = int(setup_file['FromLatest']) if setup_file['FromLatest'].isnumeric() else setup_file['FromLatest']
         setup_file['MaxEpoch'] = int(setup_file['MaxEpoch'])
+        setup_file['GPU'] = bool(setup_file['FromLatest'])
         return setup_file
     except Exception as e:
         print(e)
         raise FileNotFoundError('Unable to read setup file.')
 
-def prepare_data():
-    return []
+# def prepare_data():
+#     pass
 
 def prepare_models(setup):
     policy_model = SaccadicNetEye()
@@ -39,17 +40,12 @@ def prepare_models(setup):
         epoch = setup['Epoch']
     return policy_model, classifier, epoch
 
-def validate():
-    pass
-
-def evaluate():
-    pass
-
 def train_epoch(sn_eye,sn_classifier,dataset,epoch):
-    do_epoch(sn_eye,sn_classifier,dataset,epoch)
-    sn_eye.store_intermediate(epoch)
-    sn_classifier.store_intermediate(epoch)
-#     evaluate()
+    if setup['GPU']:
+        with tf.device("gpu"):
+            do_epoch(sn_eye,sn_classifier,dataset,epoch)
+    else:
+        do_epoch(sn_eye,sn_classifier,dataset,epoch)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,13 @@
 import tensorflow as tf
 from tensorflow import keras
 
+# not finished, first need data image shape
+# def get_image_patch(image, coordinates):
+#     size = image.shape()
+#     if coordinates == None:
+#         focus = (size/2).astype('int')
+#         return image[focus[0]-8:focus[0]+8][focus[1]-8:focus[1]+8]
+
 class FeatureExtractor(tf.keras.Model):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
@@ -39,7 +46,7 @@ class SaccadicNetEye(tf.keras.Model):
         '''Utility'''
         self.name = 'SaccadicNetClassifier'
         self.built = True
-        self.optimizer = None
+        self.optimizer = tf.keras.optimizers.Adam()
         self.loss = None
         
     @tf.function
@@ -89,8 +96,8 @@ class SaccadicNetClassifier(tf.keras.Model):
         '''Utility'''
         self.name = 'SaccadicNetClassifier'
         self.built = True
-        self.optimizer = None
-        self.loss = None
+        self.optimizer = tf.keras.optimizers.Adam()
+        self.loss = tf.keras.losses.CategoricalCrossentropy()
     
     @tf.function
     def call(self, x):
