@@ -13,7 +13,7 @@ TBD
 ## Contact
 Marlon Dammann <mdammann@uni-osnabrück.de>
 Nils Niehaus <nniehaus@uni-osnabrück.de>
-Argha Sarker <sarker@uni-osnabrück.de>
+Argha Sarker <asarker@uni-osnabrück.de>
 
 ## References
 TBD
