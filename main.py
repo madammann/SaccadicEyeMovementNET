@@ -1,4 +1,4 @@
-from data_prepare import *
+from data_creator import *
 from data import *
 from model import *
 from training import *
@@ -15,16 +15,22 @@ def get_setup():
         setup_file = {line.split(':')[0] : line.split(':')[1] for line in setup_file}
         setup_file['Classes'] = [classname for classname in setup_file['Classes'].split(',')]
         setup_file['FromLatest'] = bool(setup_file['FromLatest'])
-        setup_file['Epoch'] = int(setup_file['FromLatest']) if setup_file['FromLatest'].isnumeric() else setup_file['FromLatest']
+        setup_file['Epoch'] = int(setup_file['FromLatest']) if str(setup_file['FromLatest']).isnumeric() else setup_file['FromLatest']
         setup_file['MaxEpoch'] = int(setup_file['MaxEpoch'])
         setup_file['GPU'] = bool(setup_file['FromLatest'])
+        setup_file['BATCH_SIZE'] = int(setup_file['BATCH_SIZE'])
+        setup_file['DataPath'] = setup_file['DataPath']
         return setup_file
     except Exception as e:
         print(e)
         raise FileNotFoundError('Unable to read setup file.')
 
-# def prepare_data():
-#     pass
+def prepare_data(setup):
+    download(setup['Classes'], setup['DataPath'])
+    dataset = load_manual_alternative(setup['DataPath']) 
+    dataset['train'] = preprocess_data(dataset['train'], setup['BATCH_SIZE'], len(setup['Classes']))
+    dataset['test'] = preprocess_data(dataset['test'], setup['BATCH_SIZE'], len(setup['Classes']))
+    return dataset
 
 def prepare_models(setup):
     policy_model = SaccadicNetEye()
@@ -50,9 +56,10 @@ def train_epoch(sn_eye,sn_classifier,dataset,epoch):
 
 if __name__ == '__main__':
     setup = get_setup()
-#     dataset = prepare_data()
+    dataset = prepare_data(setup)
+    print(dataset["train"].take(2))
     saccadic_net_eye, saccadic_net_classifier, epoch = prepare_models(setup)
-#     validate()
+    validate()
     num_epochs = setup['MaxEpoch']
     if epoch < num_epochs:
         for i in range(len(num_epochs)-epoch):

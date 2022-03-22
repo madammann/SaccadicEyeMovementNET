@@ -13,3 +13,4 @@ dependencies:
     - tensorflow_datasets
     - tqdm
     - matplotlib
+    - CocoDataset==0.1.2
