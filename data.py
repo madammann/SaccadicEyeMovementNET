@@ -15,17 +15,14 @@ def download_image(img,terminate=False):
         img_data = requests.get(img['coco_url']).content
         with open(img['path_with_class'] +'/'+ img['file_name'], 'wb') as handler:
             handler.write(img_data)
-        time.sleep(2)
+        time.sleep(1)
         return True
     except Exception as e:
-        if os.path.exists(img['path_with_class'] +'/'+ img['file_name']):
-            return True
+        if terminate == True:
+            return False
         else:
-            if terminate == True:
-                return False
-            else:
-                time.sleep(30)
-                download_image(img,terminate=True)
+            time.sleep(20)
+            download_image(img,terminate=True)
 
 def coco_dataset_download(coco, class_name, image_directory, prefix,multiprocessing=True):
     parent_dir =prefix+'coco_dataset_subclass'
@@ -38,33 +35,30 @@ def coco_dataset_download(coco, class_name, image_directory, prefix,multiprocess
     imgIds = coco.getImgIds(catIds=catIds)
     images = coco.loadImgs(imgIds)
     '''Create folder for class'''
-    os.makedirs(path_with_class)
+    if not os.path.exists(path_with_class):
+        os.makedirs(path_with_class)
     for image in images:
         image['path_with_class'] = path_with_class
 
+    '''Remove already downloaded images'''
+    present = os.listdir(path_with_class)
+    images = [image for image in images if image['file_name'] not in present]
+
     if multiprocessing:
-        try:
-            thread_pool = ThreadPool(20).imap_unordered(download_image, [images[i] for i in range(len(images))])
-            for thread in tqdm(thread_pool, desc='Downloading '+str(class_name)+' images.'):
-                res = thread
-        except Exception as e:
-            print(e)
-            print('Executing again with multiprocessing off.')
-            coco_dataset_download(coco, class_name, image_directory, prefix,multiprocessing=False)
+        thread_pool = ThreadPool(60).imap_unordered(download_image, [images[i] for i in range(len(images))])
+        for thread in tqdm(thread_pool, desc='Downloading '+str(class_name)+' images.'):
+            res = thread
     else:
         for img in tqdm(images,desc='Downloading '+str(class_name)+' images.'):
             download_image(img)
 
 def download(classes, prefix,multiprocessing=True):
-    if not os.path.exists(prefix+'coco_dataset_subclass'):
-        coco_train = COCO('./annotations/instances_train2014.json')
-        coco_test = COCO('./annotations/instances_val2014.json')
-        for class_name in tqdm(classes,desc='Downloading train and test images.'):
-            coco_dataset_download(coco_train,class_name,'train',prefix,multiprocessing=multiprocessing)
-            coco_dataset_download(coco_test,class_name,'test',prefix,multiprocessing=multiprocessing)
-            print('Finished downloading Images for class: '+str(class_name))
-    else:
-        print("Loading in existing data.")
+    coco_train = COCO('./annotations/instances_train2014.json')
+    coco_test = COCO('./annotations/instances_val2014.json')
+    for class_name in tqdm(classes,desc='Downloading train and test images.'):
+        coco_dataset_download(coco_train,class_name,'train',prefix,multiprocessing=multiprocessing)
+        coco_dataset_download(coco_test,class_name,'test',prefix,multiprocessing=multiprocessing)
+        print('Finished downloading Images for class: '+str(class_name))
 
 def load_manual_alternative(prefix):
     builder = tfds.ImageFolder(prefix+'coco_dataset_subclass/')
