@@ -8,11 +8,13 @@ from pycocotools.coco import COCO
 from tqdm import tqdm
 
 from multiprocessing.pool import ThreadPool
+import time
 
 def download_image(img):
     img_data = requests.get(img['coco_url']).content
     with open(img['path_with_class'] +'/'+ img['file_name'], 'wb') as handler:
         handler.write(img_data)
+    time.sleep(2)
     return True
 
 def coco_dataset_download(coco, class_name, image_directory, prefix,multiprocessing=True):
@@ -32,7 +34,7 @@ def coco_dataset_download(coco, class_name, image_directory, prefix,multiprocess
 
     if multiprocessing:
         try:
-            thread_pool = ThreadPool(100).imap_unordered(download_image, [images[i] for i in range(len(images))])
+            thread_pool = ThreadPool(20).imap_unordered(download_image, [images[i] for i in range(len(images))])
             for thread in tqdm(thread_pool, desc='Downloading '+str(class_name)+' images.'):
                 res = thread
         except Exception as e:
