@@ -11,7 +11,7 @@ def get_setup():
     with open('./setup/setup.txt','r') as file:
         setup_file = file.read().split('\n')
     try:
-        setup_file = {line.split('=')[0] : line.split('=')[1] for line in setup_file}
+        setup_file = {line.split('=')[0] : line.split('=')[1] for line in setup_file if line != ""}
         setup_file['Classes'] = [classname for classname in setup_file['Classes'].split(',')]
         setup_file['FromLatest'] = bool(setup_file['FromLatest'])
         setup_file['Epoch'] = int(setup_file['FromLatest']) if str(setup_file['FromLatest']).isnumeric() else setup_file['FromLatest']
