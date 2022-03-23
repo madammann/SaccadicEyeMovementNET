@@ -10,12 +10,22 @@ from tqdm import tqdm
 from multiprocessing.pool import ThreadPool
 import time
 
-def download_image(img):
-    img_data = requests.get(img['coco_url']).content
-    with open(img['path_with_class'] +'/'+ img['file_name'], 'wb') as handler:
-        handler.write(img_data)
-    time.sleep(2)
-    return True
+def download_image(img,terminate=False):
+    try:
+        img_data = requests.get(img['coco_url']).content
+        with open(img['path_with_class'] +'/'+ img['file_name'], 'wb') as handler:
+            handler.write(img_data)
+        time.sleep(2)
+        return True
+    except Exception as e:
+        if os.path.exists(img['path_with_class'] +'/'+ img['file_name']):
+            return True
+        else:
+            if terminate == True:
+                return False
+            else:
+                time.sleep(30)
+                download_image(img,terminate=True)
 
 def coco_dataset_download(coco, class_name, image_directory, prefix,multiprocessing=True):
     parent_dir =prefix+'coco_dataset_subclass'
