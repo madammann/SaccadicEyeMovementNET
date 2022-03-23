@@ -19,13 +19,14 @@ def get_setup():
         setup_file['GPU'] = bool(setup_file['FromLatest'])
         setup_file['BATCH_SIZE'] = int(setup_file['BATCH_SIZE'])
         setup_file['DataPath'] = setup_file['DataPath']
+        setup_file['Multiprocessing'] = bool(setup_file['Multiprocessing'])
         return setup_file
     except Exception as e:
         print(e)
         raise FileNotFoundError('Unable to read setup file.')
 
 def prepare_data(setup):
-    download(setup['Classes'], setup['DataPath'])
+    download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
     dataset = load_manual_alternative(setup['DataPath'])
     dataset['train'] = preprocess_data(dataset['train'], setup['BATCH_SIZE'], len(setup['Classes']))
     dataset['test'] = preprocess_data(dataset['test'], setup['BATCH_SIZE'], len(setup['Classes']))
