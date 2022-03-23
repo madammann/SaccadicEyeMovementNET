@@ -1,7 +1,7 @@
-DataPath:./
-Classes:person,cow,train,motorbike,chair,sofa,bottle
-FromLatest:True
-Epoch:latest
-MaxEpoch:20
-GPU:True
-BATCH_SIZE:3
+DataPath=./
+Classes=person,car,chair,bench,truck,bottle,cup,diningtable,bowl,bicycle,book,clock
+FromLatest=True
+Epoch=latest
+MaxEpoch=20
+GPU=True
+BATCH_SIZE=16

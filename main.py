@@ -1,4 +1,3 @@
-from data_creator import *
 from data import *
 from model import *
 from training import *
@@ -11,8 +10,8 @@ def get_setup():
     setup_file = None
     with open('./setup/setup.txt','r') as file:
         setup_file = file.read().split('\n')
-    try:    
-        setup_file = {line.split(':')[0] : line.split(':')[1] for line in setup_file}
+    try:
+        setup_file = {line.split('=')[0] : line.split('=')[1] for line in setup_file}
         setup_file['Classes'] = [classname for classname in setup_file['Classes'].split(',')]
         setup_file['FromLatest'] = bool(setup_file['FromLatest'])
         setup_file['Epoch'] = int(setup_file['FromLatest']) if str(setup_file['FromLatest']).isnumeric() else setup_file['FromLatest']
@@ -27,7 +26,7 @@ def get_setup():
 
 def prepare_data(setup):
     download(setup['Classes'], setup['DataPath'])
-    dataset = load_manual_alternative(setup['DataPath']) 
+    dataset = load_manual_alternative(setup['DataPath'])
     dataset['train'] = preprocess_data(dataset['train'], setup['BATCH_SIZE'], len(setup['Classes']))
     dataset['test'] = preprocess_data(dataset['test'], setup['BATCH_SIZE'], len(setup['Classes']))
     return dataset
@@ -57,9 +56,7 @@ def train_epoch(sn_eye,sn_classifier,dataset,epoch):
 if __name__ == '__main__':
     setup = get_setup()
     dataset = prepare_data(setup)
-    print(dataset["train"].take(2))
     saccadic_net_eye, saccadic_net_classifier, epoch = prepare_models(setup)
-    validate()
     num_epochs = setup['MaxEpoch']
     if epoch < num_epochs:
         for i in range(len(num_epochs)-epoch):
