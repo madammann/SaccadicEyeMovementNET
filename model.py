@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from multiprocessing.pool import ThreadPool
 
@@ -15,19 +16,20 @@ class PatchSeries:
 
         self.series = np.zeros((self.sequence_len,self.batch_size,32,32,3))
         self.distributions = np.zeros((self.sequence_len-1,self.batch_size,4))
-        self.coordinates = np.zeros((self.sequence_len-1,self.batch_size,2))
+        self.coordinates = np.zeros((self.sequence_len-1,self.batch_size,2),dtype='int32')
+        
         for t in range(self.sequence_len):
             if t == 0:
                 self.series[t] = np.array([patch for patch in ThreadPool(self.batch_size).starmap(self.get_image_patch, [(img,None) for img in self.images])])
             else:
-                self.coordinates[t-1] = np.array([coord for coord in ThreadPool(self.batch_size).starmap(self.sample_coordinates,[(self.distributions[t][i],t) for i in range(self.batch_size)])])
+                self.distributions[t-1] = self.sn_eye(tf.constant(self.series[0:t])).numpy()
+                self.coordinates[t-1] = np.array([coord for coord in ThreadPool(self.batch_size).starmap(self.sample_coordinates,[(self.distributions[t-1][i],t) for i in range(self.batch_size)])])
                 self.series[t] = np.array([patch for patch in ThreadPool(self.batch_size).starmap(self.get_image_patch, [(self.images[i],self.coordinates[t-1][i]) for i in range(self.batch_size)])])
-                self.distributions[t-1] = np.array([dist for dist in ThreadPool(self.batch_size).map(self.create_distributions,[self.series[0:t][i] for i in range(self.batch_size)])])
 
     def get_image_patch(self, image, coordinates=None):
         size = image.shape[:2]
         center = coordinates
-        if center == None:
+        if type(center) == type(None):
             center = [int(size[0]/2),int(size[1]/2)]
         if center[0] < 16:
             center[0] = 16
@@ -39,9 +41,8 @@ class PatchSeries:
             center[1] = size[1]-15
         return image[center[0]-16:center[0]+16,center[1]-16:center[1]+16]
 
-    def sample_coordinates(self,image,step):
-        distributions = self.sn_eye(self.series).numpy()
-        coordinates = [int(np.random.normal(params[0],params[1])) for params in distributions]
+    def sample_coordinates(self,dist,step):
+        coordinates = [int(np.random.normal(dist[0],dist[2])),int(np.random.normal(dist[1],dist[3]))]
         return coordinates
     
     def create_distributions(self,series):
@@ -85,26 +86,35 @@ class SaccadicNetEye(tf.keras.Model):
         '''Model structure'''
         self.feature_extractor = FeatureExtractor()
 
-        self.LSMT = tf.keras.layers.LSTM(30)
+        self.LSTM = tf.keras.layers.LSTM(30,time_major=True)
 
         self.dense = tf.keras.layers.Dense(30,activation='relu')
 
         self.out_mu = tf.keras.layers.Dense(2,activation='linear')
         self.out_sigma = tf.keras.layers.Dense(2,activation='softplus')
+        
+        self.concat_layer = tf.keras.layers.Concatenate(0)
 
         '''Utility'''
-        self.nameinfo = 'SaccadicNetClassifier'
+        self.nameinfo = 'SaccadicNetEye'
         self.built = True
         self.optimizer = tf.keras.optimizers.Adam()
         self.loss = None
-
+    
     @tf.function
     def call(self, x):
-        x = self.feature_extractor(x)
+        sequence_len = x.shape[0]
+        lst = []
+        for step in range(sequence_len):
+            lst.append(tf.expand_dims(self.feature_extractor(x[step]),axis=0))
+        x = self.concat_layer(lst)
+        
         x = self.LSTM(x)
+        
         x = self.dense(x)
         a = self.out_mu(x)
         b = self.out_sigma(x)
+        
         return tf.concat([a,b],axis=1)
 
     def store_intermediate(self, epoch, path='./weights/'):
@@ -131,17 +141,19 @@ class SaccadicNetEye(tf.keras.Model):
             print('You can ignore this error if the model has never been trained.')
 
 class SaccadicNetClassifier(tf.keras.Model):
-    def __init__(self, classes=10):
+    def __init__(self, classes=11):
         super(SaccadicNetClassifier, self).__init__()
         '''Model structure'''
         self.feature_extractor = FeatureExtractor()
 
-        self.LSMT = tf.keras.layers.LSTM(30)
+        self.LSTM = tf.keras.layers.LSTM(30,time_major=True)
 
         self.dense = tf.keras.layers.Dense(30,activation='relu')
 
         self.out = tf.keras.layers.Dense(classes,activation='softmax')
-
+        
+        self.concat_layer = tf.keras.layers.Concatenate(0)
+        
         '''Utility'''
         self.nameinfo = 'SaccadicNetClassifier'
         self.built = True
@@ -150,8 +162,14 @@ class SaccadicNetClassifier(tf.keras.Model):
 
     @tf.function
     def call(self, x):
-        x = self.feature_extractor(x)
+        sequence_len = x.shape[0]
+        lst = []
+        for step in range(sequence_len):
+            lst.append(tf.expand_dims(self.feature_extractor(x[step]),axis=0))
+        x = self.concat_layer(lst)
+        
         x = self.LSTM(x)
+        
         x = self.dense(x)
         x = self.out(x)
         return x

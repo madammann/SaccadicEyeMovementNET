@@ -6,6 +6,8 @@ from evaluate import *
 import pandas as pd
 from tqdm import tqdm
 
+import os
+
 def get_setup():
     setup_file = None
     with open('./setup/setup.txt','r') as file:
@@ -35,11 +37,11 @@ def prepare_models(setup):
     policy_model = SaccadicNetEye()
     classifier = SaccadicNetClassifier()
     epoch = 0
-    if setup['FromLatest']:
+    if setup['FromLatest'] and len(os.listdir('./weights/'))>2:
         epoch = max(list(pd.read_csv('./weights/index.csv')['Epoch']))
         policy_model.load_latest()
         classifier.load_latest()
-    elif type(setup['Epoch']) == int:
+    elif type(setup['Epoch']) == int and len(os.listdir('./weights/'))>2:
         policy_model.load_intermediate(setup['Epoch'])
         classifier.load_intermediate(setup['Epoch'])
         epoch = setup['Epoch']
@@ -51,7 +53,6 @@ def train_epoch(sn_eye,sn_classifier,dataset,epoch):
             do_epoch(sn_eye,sn_classifier,dataset,epoch)
     else:
         do_epoch(sn_eye,sn_classifier,dataset,epoch)
-
 
 if __name__ == '__main__':
     setup = get_setup()
