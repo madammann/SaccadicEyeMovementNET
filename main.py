@@ -17,7 +17,6 @@ def get_setup():
         setup_file['Epoch'] = int(setup_file['FromLatest']) if str(setup_file['FromLatest']).isnumeric() else setup_file['FromLatest']
         setup_file['MaxEpoch'] = int(setup_file['MaxEpoch'])
         setup_file['GPU'] = bool(setup_file['FromLatest'])
-        setup_file['BATCH_SIZE'] = int(setup_file['BATCH_SIZE'])
         setup_file['DataPath'] = setup_file['DataPath']
         setup_file['Multiprocessing'] = bool(setup_file['Multiprocessing'])
         return setup_file
@@ -28,8 +27,8 @@ def get_setup():
 def prepare_data(setup):
     download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
     dataset = load_manual_alternative(setup['DataPath'])
-    dataset['train'] = preprocess_data(dataset['train'], setup['BATCH_SIZE'], len(setup['Classes']))
-    dataset['test'] = preprocess_data(dataset['test'], setup['BATCH_SIZE'], len(setup['Classes']))
+    dataset['train'] = preprocess_data(dataset['train'], len(setup['Classes']))
+    dataset['test'] = preprocess_data(dataset['test'], len(setup['Classes']))
     return dataset
 
 def prepare_models(setup):
@@ -58,8 +57,8 @@ if __name__ == '__main__':
     setup = get_setup()
     dataset = prepare_data(setup)
     saccadic_net_eye, saccadic_net_classifier, epoch = prepare_models(setup)
-    num_epochs = setup['MaxEpoch']
-    if epoch < num_epochs:
-        for i in range(len(num_epochs)-epoch):
-            print('Beginning training epoch' + str(i+epoch)+'.')
-            train_epoch(saccadic_net_eye, saccadic_net_classifier,dataset,i+epoch)
+    # num_epochs = setup['MaxEpoch']
+    # if epoch < num_epochs:
+        # for i in range(len(num_epochs)-epoch):
+            # print('Beginning training epoch' + str(i+epoch)+'.')
+            # train_epoch(saccadic_net_eye, saccadic_net_classifier,dataset,i+epoch)

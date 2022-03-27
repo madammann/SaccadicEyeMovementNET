@@ -1,8 +1,7 @@
 DataPath=./
-Classes=person,car,chair,bench,truck,bottle,cup,diningtable,bowl,bicycle,book,clock
+Classes=person,car,chair,bench,truck,bottle,cup,bowl,bicycle,book,clock
 FromLatest=True
 Epoch=latest
 MaxEpoch=20
 GPU=True
-BATCH_SIZE=16
 Multiprocessing=True

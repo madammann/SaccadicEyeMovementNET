@@ -65,11 +65,12 @@ def load_manual_alternative(prefix):
     dataset = builder.as_dataset(as_supervised=True)
     return dataset
 
-def preprocess_data(dataset, batchsize, numOfClasses):
+def preprocess_data(dataset, numOfClasses):
 
-    coco = coco.map(lambda img, target: (tf.image.resize(img, [128,128],
+    dataset = dataset.map(lambda img, target: (tf.image.resize(img, [400,400],
                                          method = tf.image.ResizeMethod.BILINEAR,
                                          preserve_aspect_ratio=False),target))
+
     #convert data from uint8 to float32
     dataset = dataset.map(lambda img, target: (tf.cast(img, tf.float32), target))
 
@@ -79,10 +80,10 @@ def preprocess_data(dataset, batchsize, numOfClasses):
     #create one-hot targets
     dataset = dataset.map(lambda img, target: (img, tf.one_hot(target, depth=numOfClasses)))
     #cache this progress in memory, as there is no need to redo it; it is deterministic after all
-    #dataset = dataset.cache()
+    # dataset = dataset.cache()
     #shuffle, batch, prefetch
     dataset = dataset.shuffle(100)
-    dataset = dataset.batch(batchsize)
-    dataset = dataset.prefetch(2)
+    dataset = dataset.batch(64)
+    dataset = dataset.prefetch(20)
     #return preprocessed dataset
     return dataset
