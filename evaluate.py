@@ -24,8 +24,21 @@ def visualize_midtraining():
     pass
 
 def plot_lossaccuracy():
-    '''Prints the loss and accuracy of the training for all relevant data splits.'''
-    pass
+    '''Draws the loss and accuracy of both models over the epochs.'''
+    df = pd.read_csv('./eval/loss_accuracy.csv')
+    snc_df = df.where(df['Model'] == 'SaccadicNetClassifier').dropna()
+    sne_df = df.where(df['Model'] == 'SaccadicNetEye').dropna()
+    fig, ax = plt.subplots(1,2,figsize=(15, 4))
+    line1, = ax[0].plot(snc_df['Loss'].values, label='SaccadicNetClassifier')
+    line2, = ax[0].plot(sne_df['Loss'].values, label='SaccadicNetEye')
+    line3, = ax[1].plot(snc_df['Accuracy'].values, label='SaccadicNetClassifier')
+    ax[0].set_xlabel("Training epoch")
+    ax[0].set_ylabel("Loss")
+    ax[1].set_xlabel("Training epoch")
+    ax[1].set_ylabel("Accuracy")
+    ax[0].legend()
+    ax[1].legend()
+    plt.show()
 
 def plot_movement():
     '''Plots an analysis of the movement behavior for comparison with the human eye'''

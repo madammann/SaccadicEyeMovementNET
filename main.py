@@ -21,16 +21,18 @@ def get_setup():
         setup_file['GPU'] = bool(setup_file['FromLatest'])
         setup_file['DataPath'] = setup_file['DataPath']
         setup_file['Multiprocessing'] = bool(setup_file['Multiprocessing'])
+        setup_file['Modus'] = setup_file['Modus']
         return setup_file
     except Exception as e:
         print(e)
         raise FileNotFoundError('Unable to read setup file.')
 
 def prepare_data(setup):
-    download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
+    # download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
+    print('Preparing dataset pipeline.')
     dataset = load_manual_alternative(setup['DataPath'])
-    dataset['train'] = preprocess_data(dataset['train'], len(setup['Classes']))
-    dataset['test'] = preprocess_data(dataset['test'], len(setup['Classes']))
+    dataset['train'] = preprocess_data(dataset['train'], len(setup['Classes'])).take(20)
+    dataset['test'] = preprocess_data(dataset['test'], len(setup['Classes'])).take(20)
     return dataset
 
 def prepare_models(setup):
@@ -47,19 +49,22 @@ def prepare_models(setup):
         epoch = setup['Epoch']
     return policy_model, classifier, epoch
 
-def train_epoch(sn_eye,sn_classifier,dataset,epoch):
-    if setup['GPU']:
-        with tf.device("gpu"):
-            do_epoch(sn_eye,sn_classifier,dataset,epoch)
-    else:
-        do_epoch(sn_eye,sn_classifier,dataset,epoch)
-
 if __name__ == '__main__':
     setup = get_setup()
     dataset = prepare_data(setup)
     saccadic_net_eye, saccadic_net_classifier, epoch = prepare_models(setup)
-    # num_epochs = setup['MaxEpoch']
-    # if epoch < num_epochs:
-        # for i in range(len(num_epochs)-epoch):
-            # print('Beginning training epoch' + str(i+epoch)+'.')
-            # train_epoch(saccadic_net_eye, saccadic_net_classifier,dataset,i+epoch)
+
+    if setup['Modus'] == 'Training':
+        num_epochs = setup['MaxEpoch']
+        if epoch < num_epochs:
+            for i in range(num_epochs-epoch):
+                print('Beginning training epoch' + str(i+epoch)+'.')
+                if setup['GPU']:
+                    with tf.device("gpu"):
+                        train_epoch(saccadic_net_eye, saccadic_net_classifier,dataset,i+epoch)
+                else:
+                    train_epoch(saccadic_net_eye, saccadic_net_classifier,dataset,i+epoch)
+    elif setup['Modus'] == 'Evaluation':
+        pass
+    elif setup['Modus'] == '':
+        pass
