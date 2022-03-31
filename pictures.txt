@@ -1,0 +1,8 @@
+./coco_dataset_subclass/bench/COCO_val2014_000000000623,1
+./coco_dataset_subclass/bench/COCO_val2014_000000003217,1
+./coco_dataset_subclass/bicycle/COCO_val2014_000000012818,2
+./coco_dataset_subclass/bicycle/COCO_val2014_000000020342,2
+./coco_dataset_subclass/bench/COCO_val2014_000000000328,1
+.coco_dataset_subclass/bottle/COCO_val2014_000000003703,4
+./coco_dataset_subclass/bottle/COCO_val2014_000000004592,4
+./coco_dataset_subclass/bottle/COCO_val2014_000000000459,4
