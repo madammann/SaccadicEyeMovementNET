@@ -7,13 +7,19 @@ from matplotlib import pyplot as plt
 import sys
 import numpy as np
 import colorsys
+from data import *
 
-def load_performance_data():
-    '''Loads in stored performance data.'''
-    pass
-
-def create_performance_data():
-    '''Creates performance data using the model at timestamp x and data.'''
+def get_pictures():
+    picture_file = None
+    with open('./setup/pictures.txt','r') as file:
+        picture_file = file.read().split('\n')
+    try:
+        picture_file = [(line.split(',')[0], line.split(',')[1]) for line in picture_file if line != ""]
+        print(line for line in picture_file if line != "")
+        return [(tf.convert_to_tensor(cv.imread(elem[0])),tf.convert_to_tensor(tf.onehot(int(elem[1]), depth=11))) for elem in picture_file]
+    except Exception as e:
+        print(e)
+        raise FileNotFoundError('Unable to read picture file.')
 
 def visualize_posttraining(image, model):
     '''Draws the saccadic eye movement for an example image and classification.'''
@@ -39,6 +45,7 @@ def plot_lossaccuracy():
     ax[0].legend()
     ax[1].legend()
     plt.show()
+
 
 def plot_movement():
     '''Plots an analysis of the movement behavior for comparison with the human eye'''
