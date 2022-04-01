@@ -21,16 +21,29 @@ def get_setup():
         setup_file['GPU'] = bool(setup_file['FromLatest'])
         setup_file['DataPath'] = setup_file['DataPath']
         setup_file['Multiprocessing'] = bool(setup_file['Multiprocessing'])
-        setup_file['Modus'] = setup_file['Modus']
+        #setup_file['Modus'] = setup_file['Modus']
+        #setup_file['Data_dir'] = setup_file['Data_dir']
+        
+        
         return setup_file
     except Exception as e:
         print(e)
         raise FileNotFoundError('Unable to read setup file.')
 
 def prepare_data(setup):
-    # download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
+    #download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
+
+    ## remove the duplicates here
+    search_and_delete_duplicates("./coco_dataset_subclass")
     print('Preparing dataset pipeline.')
-    dataset = load_manual_alternative(setup['DataPath'])
+    print("image found ", len(image_found))
+    print("unique images " , len(unique))
+    
+    dataset = load_manual_alternative(setup['DataPath']) 
+
+    
+    
+    
     dataset['train'] = preprocess_data(dataset['train'], len(setup['Classes'])).take(20)
     dataset['test'] = preprocess_data(dataset['test'], len(setup['Classes'])).take(20)
     return dataset

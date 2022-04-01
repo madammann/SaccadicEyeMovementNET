@@ -87,3 +87,36 @@ def preprocess_data(dataset, numOfClasses):
     dataset = dataset.prefetch(20)
     #return preprocessed dataset
     return dataset
+
+# for keeping track of images
+unique = []
+image_found = []
+
+
+def search_and_delete_duplicates(dirName):
+    """search for all the image files that has occured more then once
+        in a given directory and goes over it and deleted the 
+        multiple entry, Keeps only the unique entries """
+    os.listdir(path='.')
+
+    # create a list of file and sub directories 
+    # names in the given directory 
+    listOfFile = os.listdir(dirName)    
+    allFiles = []    
+    # Iterate over all the entries
+    for entry in listOfFile:
+        # Create full path
+       
+        fullPath = os.path.join(dirName, entry)
+        # If entry is a directory then get the list of files in this directory 
+        if os.path.isdir(fullPath):
+            allFiles = allFiles + search_and_delete_duplicates(fullPath)
+        else:
+            # get the file names
+            image_found.append(entry)
+            if (entry not in unique):
+                unique.append(entry)      
+            else:
+               # print(entry , "   file name found and will be deleted")
+                os.remove(fullPath)
+    return allFiles
