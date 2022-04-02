@@ -63,7 +63,7 @@ def train_epoch(sn_eye,sn_classifier,dataset,epoch,batch_size=64,sequence_len=20
         sequence = advance_sequence(data)
         
         '''Generate loss, accuracy and reward measures for batch sequence'''
-        with tf.GradientTape() as eye_tape, tf.GradientTape() as class_tape:
+        with tf.GradientTape() as class_tape:
             '''Generate necessary lists and variables for tracing'''
             classifier_loss,accuracy,reward = [],[],[]
             avg_entropy, avg_action_prob = [], []
@@ -111,10 +111,11 @@ def train_epoch(sn_eye,sn_classifier,dataset,epoch,batch_size=64,sequence_len=20
             epoch_accuracy += [accuracy]
             
             '''Applying gradients'''
-            eye_gradient = eye_tape.gradient(eye_loss, sn_eye.trainable_variables)
-            sn_eye.optimizer.apply_gradients(zip(eye_gradient, sn_eye.trainable_variables))
             class_gradient = class_tape.gradient(classifier_loss, sn_classifier.trainable_variables)
             sn_classifier.optimizer.apply_gradients(zip(class_gradient, sn_classifier.trainable_variables))
+            
+            '''Calculating and applying gradients with Policy Class'''
+            #enter here when done
     
     '''Taking the mean'''
     epoch_reward = tf.reduce_mean(epoch_reward).numpy()

@@ -1,8 +1,5 @@
 DataPath=./
 Classes=person,car,chair,bench,truck,bottle,cup,bowl,bicycle,book,clock
-FromLatest=True
-Epoch=latest
 MaxEpoch=20
 GPU=True
-Multiprocessing=True
-Modus=Training
+Mode=Training

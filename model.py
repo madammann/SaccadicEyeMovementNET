@@ -8,11 +8,6 @@ from tensorflow import keras
 
 from scipy import stats
 
-class ModifiedPolicyGradientLoss(tf.keras.losses.Loss):
-    @tf.function
-    def call(self, reward, distributions):
-        return -reward
-
 class FeatureExtractor(tf.keras.Model):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
@@ -90,6 +85,7 @@ class SaccadicNetEye(tf.keras.Model):
             current_epoch = max(list(df['Epoch']))
             name = self.nameinfo+str(current_epoch)
             self.load_weights('weights/'+name+'.h5')
+            return current_epoch
         except Exception as e:
             print(e)
             print('Could not load latest model from index.csv information.')
@@ -147,6 +143,7 @@ class SaccadicNetClassifier(tf.keras.Model):
             current_epoch = max(list(df['Epoch']))
             name = self.nameinfo+str(current_epoch)
             self.load_weights('weights/'+name+'.h5')
+            return current_epoch
         except Exception as e:
             print(e)
             print('Could not load latest model from index.csv information.')
