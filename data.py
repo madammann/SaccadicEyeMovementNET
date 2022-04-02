@@ -119,3 +119,4 @@ def search_and_delete_duplicates(dirName):
             else:
                # print(entry , "   file name found and will be deleted")
                 os.remove(fullPath)
+        return allFiles
