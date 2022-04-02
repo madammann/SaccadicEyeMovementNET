@@ -97,14 +97,14 @@ def search_and_delete_duplicates(dirName):
     """search for all the image files that has occured more then once
         in a given directory and goes over it and deleted the 
         multiple entry, Keeps only the unique entries """
-    os.listdir(path='.')
 
     # create a list of file and sub directories 
     # names in the given directory 
     listOfFile = os.listdir(dirName)    
-    allFiles = []    
+    allFiles = []
+
     # Iterate over all the entries
-    for entry in listOfFile:
+    for entry in tqdm(listOfFile,desc='Tracked images'):
         # Create full path
        
         fullPath = os.path.join(dirName, entry)
@@ -119,4 +119,3 @@ def search_and_delete_duplicates(dirName):
             else:
                # print(entry , "   file name found and will be deleted")
                 os.remove(fullPath)
-    return allFiles

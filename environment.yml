@@ -14,3 +14,4 @@ dependencies:
     - tqdm
     - matplotlib
     - CocoDataset==0.1.2
+    - scipy

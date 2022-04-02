@@ -21,10 +21,7 @@ def get_setup():
         setup_file['GPU'] = bool(setup_file['FromLatest'])
         setup_file['DataPath'] = setup_file['DataPath']
         setup_file['Multiprocessing'] = bool(setup_file['Multiprocessing'])
-        #setup_file['Modus'] = setup_file['Modus']
-        #setup_file['Data_dir'] = setup_file['Data_dir']
-        
-        
+        setup_file['Modus'] = setup_file['Modus']
         return setup_file
     except Exception as e:
         print(e)
@@ -34,18 +31,14 @@ def prepare_data(setup):
     #download(setup['Classes'], setup['DataPath'],multiprocessing=setup['Multiprocessing'])
 
     ## remove the duplicates here
-    search_and_delete_duplicates("./coco_dataset_subclass")
+    print('Scanning for duplicate images.')
+    search_and_delete_duplicates(setup['DataPath']+"/coco_dataset_subclass")
     print('Preparing dataset pipeline.')
-    print("image found ", len(image_found))
-    print("unique images " , len(unique))
     
     dataset = load_manual_alternative(setup['DataPath']) 
-
     
-    
-    
-    dataset['train'] = preprocess_data(dataset['train'], len(setup['Classes'])).take(20)
-    dataset['test'] = preprocess_data(dataset['test'], len(setup['Classes'])).take(20)
+    dataset['train'] = preprocess_data(dataset['train'], len(setup['Classes']))
+    dataset['test'] = preprocess_data(dataset['test'], len(setup['Classes']))
     return dataset
 
 def prepare_models(setup):

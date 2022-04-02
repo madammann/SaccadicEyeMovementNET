@@ -5,3 +5,4 @@ Epoch=latest
 MaxEpoch=20
 GPU=True
 Multiprocessing=True
+Modus=Training

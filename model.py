@@ -5,15 +5,22 @@ from multiprocessing.pool import ThreadPool
 
 import tensorflow as tf
 from tensorflow import keras
-    
+
+from scipy import stats
+
+class ModifiedPolicyGradientLoss(tf.keras.losses.Loss):
+    @tf.function
+    def call(self, reward, distributions):
+        return -reward
+
 class FeatureExtractor(tf.keras.Model):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(filters=64,kernel_size=3,strides=1,padding='same',activation='relu')
-        self.conv2 = tf.keras.layers.Conv2D(filters=64,kernel_size=3,strides=1,padding='same',activation='relu')
+        self.conv1 = tf.keras.layers.Conv2D(filters=32,kernel_size=3,strides=1,padding='same',activation='relu')
+        self.conv2 = tf.keras.layers.Conv2D(filters=32,kernel_size=3,strides=1,padding='same',activation='relu')
         self.maxpool = tf.keras.layers.MaxPooling2D(pool_size=2,strides=2,padding='same')
-        self.conv3 = tf.keras.layers.Conv2D(filters=64,kernel_size=3,strides=1,padding='same',activation='relu')
-        self.conv4 = tf.keras.layers.Conv2D(filters=64,kernel_size=3,strides=1,padding='same',activation='relu')
+        self.conv3 = tf.keras.layers.Conv2D(filters=32,kernel_size=3,strides=1,padding='same',activation='relu')
+        self.conv4 = tf.keras.layers.Conv2D(filters=32,kernel_size=3,strides=1,padding='same',activation='relu')
         self.maxpool2 = tf.keras.layers.MaxPooling2D(pool_size=2,strides=2,padding='same')
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
 
@@ -39,16 +46,14 @@ class SaccadicNetEye(tf.keras.Model):
         self.dense = tf.keras.layers.Dense(30,activation='relu')
 
         self.out_mu = tf.keras.layers.Dense(2,activation='linear')
-        self.out_sigma = tf.keras.layers.Dense(2,activation='softplus')
-        
-        self.concat_layer = tf.keras.layers.Concatenate(0)
+        self.out_cov = tf.keras.layers.Dense(2,activation='softplus')
 
         '''Utility'''
         self.nameinfo = 'SaccadicNetEye'
         self.built = True
         self.optimizer = tf.keras.optimizers.Adam()
-        self.loss = lambda reward,average_entropy: -reward+average_entropy**(-1)
-    
+        self.loss = ModifiedPolicyGradientLoss()
+        
     @tf.function
     def call(self, x,initial_state=[None,None]):
         x = tf.squeeze(x)
@@ -63,7 +68,7 @@ class SaccadicNetEye(tf.keras.Model):
         
         x = self.dense(x)
         a = self.out_mu(x)
-        b = self.out_sigma(x)
+        b = self.out_cov(x)
         
         return tf.concat([a,b],axis=1), hidden_x, hidden_c
 
@@ -101,8 +106,6 @@ class SaccadicNetClassifier(tf.keras.Model):
         self.dense = tf.keras.layers.Dense(30,activation='relu')
 
         self.out = tf.keras.layers.Dense(classes,activation='softmax')
-        
-        self.concat_layer = tf.keras.layers.Concatenate(0)
         
         '''Utility'''
         self.nameinfo = 'SaccadicNetClassifier'

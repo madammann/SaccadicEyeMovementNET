@@ -9,14 +9,14 @@ import numpy as np
 import colorsys
 from data import *
 
-def get_pictures():
+def get_pictures(prefix):
     picture_file = None
     with open('./setup/pictures.txt','r') as file:
         picture_file = file.read().split('\n')
     try:
         picture_file = [(line.split(',')[0], line.split(',')[1]) for line in picture_file if line != ""]
         print(line for line in picture_file if line != "")
-        return [(tf.convert_to_tensor(cv.imread(elem[0])),tf.convert_to_tensor(tf.onehot(int(elem[1]), depth=11))) for elem in picture_file]
+        return [(tf.convert_to_tensor(cv.imread(prefix+elem[0])),tf.convert_to_tensor(tf.onehot(int(elem[1]), depth=11))) for elem in picture_file]
     except Exception as e:
         print(e)
         raise FileNotFoundError('Unable to read picture file.')
