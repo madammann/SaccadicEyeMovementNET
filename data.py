@@ -100,7 +100,7 @@ def search_and_delete_duplicates(dirName):
     allFiles = []
 
     # Iterate over all the entries
-    for entry in tqdm(listOfFile,desc='Tracked images'):
+    for entry in listOfFile:
         # Create full path
        
         fullPath = os.path.join(dirName, entry)

@@ -29,107 +29,77 @@ def update_performance(model,loss,accuracy,reward,epoch):
         print(e)
         print('Could not write model loss and accuracy to file.')
 
-'''Patch Series generator and reward functions'''
-def get_image_patch(image, coordinates=None):
-        size = image.shape[:2]
-        center = coordinates
-        if type(center) == type(None):
-            center = [int(size[0]/2),int(size[1]/2)]
-        else:
-            center = np.array(coordinates)
-        if center[0] < 16:
-            center[0] = 16
-        elif center[0] > size[0] - 15:
-            center[0] = size[0]-15
-        if center[1] < 16:
-            center[1] = 16
-        elif center[1] > size[1] - 15:
-            center[1] = size[1]-15
-        return image[center[0]-16:center[0]+16,center[1]-16:center[1]+16]
-
-'''Functions for REINFORCE plus MVG entropy'''
-def advance_sequence(images,coordinates=None,batch_size=64):
-    if type(coordinates) != type(None):
-        return tf.expand_dims(tf.constant(np.array([patch for patch in ThreadPool(batch_size).starmap(get_image_patch, [(images[i],coordinates[i]) for i in range(batch_size)])])),axis=0)
-    else:
-        return tf.expand_dims(tf.constant(np.array([patch for patch in ThreadPool(batch_size).starmap(get_image_patch, [(images[i],None) for i in range(batch_size)])])),axis=0)
-
 '''Training and evaluation loops'''
 def train_epoch(sn_eye,sn_classifier,dataset,epoch,batch_size=64,sequence_len=20,gamma=0.98):
-    epoch_eye_loss,epoch_classifier_loss,epoch_reward,epoch_accuracy = [], [], [], []
+    '''Function description'''
+    
+    '''Generate list of losses and accuracy measures over the entire epoch'''
+    epoch_eye_loss,epoch_classifier_loss,epoch_accuracy = [], [], []
+    
     '''Iterate over the dataset'''
     for data, target in tqdm(dataset,desc='Training epoch '):
         '''Generate first sequence element'''
-        sequence = advance_sequence(data)
+        env = Environment(data,batch_size=batch_size,seq_len=sequence_len)
         
         '''Generate loss, accuracy and reward measures for batch sequence'''
-        with tf.GradientTape() as class_tape:
+        with tf.GradientTape(persistent=True) as tape:
             '''Generate necessary lists and variables for tracing'''
-            classifier_loss,accuracy,reward = [],[],[]
-            avg_entropy, avg_action_prob = [], []
-            eye_loss = None
+            classifier_loss,accuracy,eye_loss = [],[],[]
             
-            '''Loop over sequence length to generate sequence losses'''
-            for step in range(sequence_len):
-                '''Generate necessary variables'''
-                class_hidden_h,class_hidden_c,eye_hidden_h,eye_hidden_c = None,None,None,None
-                
+            '''Generate necessary variables for stroing the initial LSTM states'''
+            class_hidden_h,class_hidden_c,eye_hidden_h,eye_hidden_c = None,None,None,None
+            
+            '''Until the environment reaches terminal state (sequence length) do:'''
+            for i in range(sequence_len):
                 '''Feed the current sequence through the network'''
-                distributions,eye_hidden_h,eye_hidden_c = sn_eye(sequence[-1],initial_state=[eye_hidden_h,eye_hidden_c])
-                prediction,class_hidden_h,class_hidden_c = sn_classifier(sequence[-1],initial_state=[class_hidden_h,class_hidden_c])
+                distributions,eye_hidden_h,eye_hidden_c = sn_eye(env.sequence[-1],initial_state=[eye_hidden_h,eye_hidden_c])
+                prediction,class_hidden_h,class_hidden_c = sn_classifier(env.sequence[-1],initial_state=[class_hidden_h,class_hidden_c])
                 
-                '''Generate next sequence element from sample if not at sequence end'''
-                if step != sequence_len:
-                    mvgs = [stats.multivariate_normal(mean=distributions[i][0:2].numpy(),cov=distributions[i][2:].numpy()) for i in range(batch_size)]
-                    coordinates = [mvgs[i].rvs().astype('int32') for i in range(batch_size)]
-                    avg_entropy += [tf.reduce_mean([mvgs[i].entropy() for i in range(batch_size)])]
-                    avg_action_prob += [tf.reduce_mean([mvgs[i].pdf(coordinates[i]) for i in range(batch_size)])]
-                    sequence = tf.concat([sequence,advance_sequence(data,coordinates)],axis=0)
+                '''Use the sn_eye output to generate the next sequence element if the sequence length is not yet reached'''
+                if not env.terminal():
+                    env.action(distributions)
+                
                 '''Classifier loss and accuracy calculations'''
                 accuracy += [tf.reduce_mean(tf.cast(tf.argmax(prediction) == tf.argmax(target),'float32'))]
                 classifier_loss += [sn_classifier.loss(target, prediction)]
             
-            '''Calculate the discounted total reward'''
-            for step in range(sequence_len):
-                reward += [tf.multiply(tf.multiply(tf.constant(gamma**step,dtype='float32'),-classifier_loss[step]),tf.cast(avg_action_prob[step],'float32'))+tf.cast(avg_entropy[step],'float32')]
-            reward = tf.reduce_sum(reward)
+            '''Create the eye loss from the classifier loss before reducing to mean'''
+            policy_gradient = PolicyGradient(classifier_loss[1:])
+            eye_loss = policy_gradient.get_eye_loss(env.get_states())
             
-            '''Calculate average-based eye loss'''
-            eye_loss = sn_eye.loss(reward,distributions)
-            reward = -eye_loss
+            # parameter_grad_zipper = [(None, param) for param in sn_eye.trainable_variables[:-4]]
+            # parameter_grad_zipper += [(policy_gradient.generate_gradient(param), param) for param in sn_eye.trainable_variables[-4:]]
+            # print(parameter_grad_zipper[-5:])
             
             '''Taking the mean'''
+            eye_loss = tf.reduce_mean(eye_loss)
             classifier_loss = tf.reduce_mean(classifier_loss)
             accuracy = tf.reduce_mean(accuracy)
-            reward = tf.reduce_mean(reward)
-            eye_loss = tf.reduce_mean(eye_loss)
             
             '''Appending results to epoch metric'''
             epoch_classifier_loss += [classifier_loss]
-            epoch_eye_loss += [eye_loss]
-            epoch_reward += [reward]
             epoch_accuracy += [accuracy]
+            epoch_eye_loss += [eye_loss]
             
-            '''Applying gradients'''
-            class_gradient = class_tape.gradient(classifier_loss, sn_classifier.trainable_variables)
-            sn_classifier.optimizer.apply_gradients(zip(class_gradient, sn_classifier.trainable_variables))
+        '''Applying gradients'''
+        class_gradient = tape.gradient(classifier_loss, sn_classifier.trainable_variables)
+        sn_classifier.optimizer.apply_gradients(zip(class_gradient, sn_classifier.trainable_variables))
             
-            '''Calculating and applying gradients with Policy Class'''
-            #enter here when done
+        '''Calculating and applying gradients with Policy Class'''
+        # eye_gradient = tape.gradient(eye_loss, sn_eye.trainable_variables)
+        # sn_eye.optimizer.apply_gradients(parameter_grad_zipper)
     
     '''Taking the mean'''
-    epoch_reward = tf.reduce_mean(epoch_reward).numpy()
     epoch_accuracy = tf.reduce_mean(epoch_accuracy).numpy()
     epoch_classifier_loss = tf.reduce_mean(epoch_classifier_loss).numpy()
     epoch_eye_loss = tf.reduce_mean(epoch_eye_loss).numpy()
-    
     '''Updating the performance csv files'''
-    update_performance(sn_eye.nameinfo,epoch_eye_loss,None,epoch_reward,epoch)
-    update_performance(sn_classifier.nameinfo,epoch_classifier_loss,epoch_accuracy,None,epoch)
+    # update_performance(sn_eye.nameinfo,epoch_eye_loss,None,epoch_reward,epoch)
+    # update_performance(sn_classifier.nameinfo,epoch_classifier_loss,epoch_accuracy,None,epoch)
     
     '''Storing model weights for future use'''
-    update_weight_index(sn_eye.nameinfo,epoch)
-    update_weight_index(sn_classifier.nameinfo,epoch)
+    # update_weight_index(sn_eye.nameinfo,epoch)
+    # update_weight_index(sn_classifier.nameinfo,epoch)
     
     return epoch_classifier_loss,epoch_eye_loss,epoch_reward,epoch_accuracy
             

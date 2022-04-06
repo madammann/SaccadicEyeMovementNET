@@ -8,6 +8,8 @@ from tensorflow import keras
 
 from scipy import stats
 
+from policy import *
+
 class FeatureExtractor(tf.keras.Model):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
@@ -47,7 +49,6 @@ class SaccadicNetEye(tf.keras.Model):
         self.nameinfo = 'SaccadicNetEye'
         self.built = True
         self.optimizer = tf.keras.optimizers.Adam()
-        self.loss = ModifiedPolicyGradientLoss()
         
     @tf.function
     def call(self, x,initial_state=[None,None]):
@@ -55,7 +56,7 @@ class SaccadicNetEye(tf.keras.Model):
         x = self.feature_extractor(x)
         x = tf.expand_dims(x,axis=0)
         
-        hidden_x,hidden_c = None,None
+        hidden_h,hidden_c = None,None
         if initial_state != [None,None]:
             x,hidden_h,hidden_c = self.LSTM(x,initial_state=initial_state)
         else:
@@ -65,7 +66,7 @@ class SaccadicNetEye(tf.keras.Model):
         a = self.out_mu(x)
         b = self.out_cov(x)
         
-        return tf.concat([a,b],axis=1), hidden_x, hidden_c
+        return tf.concat([a,b],axis=1), hidden_h, hidden_c
 
     def store_intermediate(self, epoch, path='./weights/'):
         '''Stores the model weights after the training epoch'''
@@ -115,7 +116,7 @@ class SaccadicNetClassifier(tf.keras.Model):
         x = self.feature_extractor(x)
         x = tf.expand_dims(x,axis=0)
         
-        hidden_x,hidden_c = None,None
+        hidden_h,hidden_c = None,None
         if initial_state != [None,None]:
             x,hidden_h,hidden_c = self.LSTM(x,initial_state=initial_state)
         else:
@@ -123,7 +124,7 @@ class SaccadicNetClassifier(tf.keras.Model):
         
         x = self.dense(x)
         x = self.out(x)
-        return x, hidden_x, hidden_c
+        return x, hidden_h, hidden_c
 
     def store_intermediate(self, epoch, path='./weights/'):
         '''Stores the model weights after the training epoch'''
