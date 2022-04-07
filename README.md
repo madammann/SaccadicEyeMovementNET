@@ -8,6 +8,7 @@ Supposedly more like human vision our “SaccadicEyeMovementNet” uses small im
 There are three prerequisites for running this code:
 
 ### Setting up the environment
+Before creating the environment it is also important to have Visual Studio installed since it is a requirenment for the COCO Dataset dependancy.
 The environment is specified in the environment file and can either be created using this file or manually with all the necessary pip installs.  
 In the Anaconda prompt the command ``conda env create -f environment.yml`` can be used to create the environment easily.  
 The environment can then be activated using ``activate SaccadicEyeMovementNet``.
@@ -23,12 +24,18 @@ Considering the size of the dataset it may be useful to specify a different path
 Default options are the options we used for our data and training, other options are also possible.
 
 ## Structure
-TBD
+The project is structured into several modules, namely:
+ * Data
+ * Model
+ * Training
+ * Policy
+ * Evaluation
+
+Those modules contain required functions and classes.
+The main.py script combined with the setup.txt file in the setup folder coordinate what is called when and with which arguments.
+NOTE: Due to time constraints it was not possible to complete this project, therefore the training does not yet work and the data pipeline downloads some uneccessary images still.
 
 ## Contact
 Marlon Dammann <mdammann@uni-osnabrück.de>
 Nils Niehaus <nniehaus@uni-osnabrück.de>
 Argha Sarker <asarker@uni-osnabrück.de>
-
-## References
-TBD
